@@ -11,6 +11,7 @@ public class BlockController : MonoBehaviour
     [field: SerializeField] public GameObject ActiveBlock { get; set; }
     [field: SerializeField] public GameOverScript gameOverScriptInstance;
     [field: SerializeField] public Score scoreInstance { get; set; }
+    [SerializeField] private GameInput gameInput;
     private Vector3 CurrentPosition { get; set; } = new Vector3();
     private Vector3 TargetPosition { get; set; } = new Vector3();
     [SerializeField] private AudioClip lineClearSound;
@@ -19,6 +20,7 @@ public class BlockController : MonoBehaviour
 
     private float currentTime = 0.0f;
     public float fallTime = 0.9f;
+    private bool fallAcceleration = false;
 
     private int boardheight = 20;
     private int boardwidth = 10;
@@ -42,17 +44,54 @@ public class BlockController : MonoBehaviour
     }
     void Start()
     {
+        gameInput.OnBlockRotationAction += GameInput_OnBlockRotationAction;
+        gameInput.OnMoveLeftAction += GameInput_OnMoveLeftAction;
+        gameInput.OnMoveRightAction += GameInput_OnMoveRightAction;
+        gameInput.OnMoveDownActionActive += OnMoveDownActionActive;
+        gameInput.OnMoveDownActionCanceled += GameInput_OnMoveDownActionCanceled;
+
         audioSource = GetComponent<AudioSource>();
     }
+
+    private void OnDestroy()
+    {
+        gameInput.OnBlockRotationAction -= GameInput_OnBlockRotationAction;
+        gameInput.OnMoveLeftAction -= GameInput_OnMoveLeftAction;
+        gameInput.OnMoveRightAction -= GameInput_OnMoveRightAction;
+        gameInput.OnMoveDownActionActive -= OnMoveDownActionActive;
+        gameInput.OnMoveDownActionCanceled -= GameInput_OnMoveDownActionCanceled;
+    }
+
+    private void GameInput_OnMoveDownActionCanceled(object sender, System.EventArgs e)
+    {
+        fallAcceleration = false;
+    }
+
+    private void OnMoveDownActionActive(object sender, System.EventArgs e)
+    {
+        fallAcceleration = true;
+    }
+
+    private void GameInput_OnMoveRightAction(object sender, System.EventArgs e)
+    {
+        TryMoveActiveBlock(Vector3.right);
+
+    }
+
+    private void GameInput_OnMoveLeftAction(object sender, System.EventArgs e)
+    {
+        TryMoveActiveBlock(Vector3.left);
+    }
+
+    private void GameInput_OnBlockRotationAction(object sender, System.EventArgs e)
+    {
+        TryRotateBlock();
+    }
+
     protected virtual void Update()
     {
-
-        CheckInput();
         MakeFall();
-        if (Input.GetKeyUp(KeyCode.UpArrow) == true)
-        {
-            TryRotateBlock();
-        }
+
     }
 
     private void TryRotateBlock()
@@ -99,28 +138,25 @@ public class BlockController : MonoBehaviour
         }
         return true;
     }
-    public void CheckInput()
-    {
-        TryMoveActiveBlock(SetMoveVector());
-    }
 
-    private Vector3 SetMoveVector()
-    {
-        if (Input.GetKeyUp(KeyCode.LeftArrow) == true)
-        {
-            MoveVector = Vector3.left;
-        }
-        else if (Input.GetKeyUp(KeyCode.RightArrow) == true)
-        {
-            MoveVector = Vector3.right;
-        }
-        else
-        {
-            MoveVector = Vector3.zero;
-        }
 
-        return MoveVector;
-    }
+    //private Vector3 SetMoveVector()
+    //{
+    //    if (Input.GetKeyUp(KeyCode.LeftArrow) == true)
+    //    {
+    //        MoveVector = Vector3.left;
+    //    }
+    //    else if (Input.GetKeyUp(KeyCode.RightArrow) == true)
+    //    {
+    //        MoveVector = Vector3.right;
+    //    }
+    //    else
+    //    {
+    //        MoveVector = Vector3.zero;
+    //    }
+
+    //    return MoveVector;
+    //}
 
 
     private bool TryMoveActiveBlock(Vector3 moveVector)
@@ -146,7 +182,16 @@ public class BlockController : MonoBehaviour
     }
     private void MakeFall()
     {
-        if (Time.time - currentTime > (Input.GetKey(KeyCode.DownArrow) ? fallTime / 10 : fallTime))
+        float currentFallTime;
+        if (fallAcceleration)
+        {
+            currentFallTime = fallTime / 10;
+        }
+        else
+        {
+            currentFallTime = fallTime;
+        }
+        if (Time.time - currentTime > currentFallTime)
         {
             Vector3 targetPosition = ActiveBlock.transform.position + Vector3.down;
 

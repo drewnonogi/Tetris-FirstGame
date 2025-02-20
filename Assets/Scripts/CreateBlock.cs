@@ -42,11 +42,5 @@ public class CreateBlock : MonoBehaviour
         BlockNumber++;
         
     }
-    void Update()
-    {
-        if (Input.GetKeyUp(KeyCode.Escape) == true)
-        {
-            Application.Quit();
-        }
-    }
+
 }
